@@ -297,5 +297,55 @@ export const referenceTemplates: Record<UCPAction, ReferenceTemplate> = {
                 'X-UCP-API-Key': 'your_api_key'
             }
         }
+    },
+
+    get_categories: {
+        title: 'Get Categories',
+        description: 'Retrieve product categories from the UCP server.',
+        docUrl: 'https://ucp.dev/specification/shopping',
+        example: {
+            method: 'GET',
+            url: '/wp-json/ucp/v1/categories',
+            headers: {
+                'Accept': 'application/json'
+            }
+        }
+    },
+
+    search_products: {
+        title: 'Search Products',
+        description: 'Search products by keyword with optional filters.',
+        docUrl: 'https://ucp.dev/specification/shopping',
+        example: {
+            method: 'GET',
+            url: '/wp-json/ucp/v1/products/search?q={keyword}',
+            headers: {
+                'Accept': 'application/json'
+            },
+            query: {
+                q: 'search keyword',
+                page: 1,
+                per_page: 10,
+                category: 'optional category ID'
+            }
+        }
+    },
+
+    get_category_products: {
+        title: 'Get Category Products',
+        description: 'Get products by category ID with optional subcategory inclusion.',
+        docUrl: 'https://ucp.dev/specification/shopping',
+        example: {
+            method: 'GET',
+            url: '/wp-json/ucp/v1/categories/{category_id}/products',
+            headers: {
+                'Accept': 'application/json'
+            },
+            query: {
+                include_subcategories: true,
+                page: 1,
+                per_page: 10
+            }
+        }
     }
 };

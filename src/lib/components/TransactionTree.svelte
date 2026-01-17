@@ -32,9 +32,7 @@
 
   function handleTransactionClick(id: string) {
     onSelectTransaction(id);
-    if (!expandedTransactions.has(id)) {
-      toggleExpand(id);
-    }
+    toggleExpand(id);
   }
 
   function getStatusIcon(status: string) {
@@ -158,10 +156,10 @@
                 class="message-item"
                 class:selected={isMessageSelected}
                 class:orphan={message.isOrphan}
-                onclick={() => onSelectMessage(message.id)}
+                onclick={() => { onSelectTransaction(transaction.id); onSelectMessage(message.id); }}
               >
-                <span class="message-type" class:request={message.type === 'request'} class:response={message.type === 'response'} class:webhook={message.type === 'webhook'}>
-                  {message.type.charAt(0).toUpperCase()}
+                <span class="message-type" class:request={message.type === 'request'} class:response={message.type === 'response'} class:webhook={message.type === 'webhook'} title={message.type === 'request' ? 'Request (Browser → Server)' : message.type === 'response' ? 'Response (Server → Browser)' : 'Webhook'}>
+                  {message.type === 'request' ? '→' : message.type === 'response' ? '←' : 'W'}
                 </span>
                 
                 <span class="message-action">

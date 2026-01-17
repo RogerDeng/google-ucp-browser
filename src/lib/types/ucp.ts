@@ -330,6 +330,9 @@ export type UCPAction =
     | 'get_cart'
     | 'get_products'
     | 'get_product'
+    | 'get_categories'
+    | 'get_category_products'
+    | 'search_products'
     | 'get_order'
     | 'webhook';
 

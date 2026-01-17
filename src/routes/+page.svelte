@@ -60,6 +60,19 @@
   let productsError = $state<string | null>(null);
   let discoveredProfile = $state<unknown>(null);
   let productsBaseEndpoint = $state<string | null>(null);
+  
+  // Categories state
+  let categories = $state<unknown[]>([]);
+  let isLoadingCategories = $state(false);
+  let selectedCategoryId = $state<number | null>(null);
+  
+  // Search state
+  let searchQuery = $state('');
+  let isSearching = $state(false);
+  
+  // Pagination state
+  let productsMeta = $state<{ page: number; per_page: number; total: number; total_pages: number } | null>(null);
+  let currentPage = $state(1);
 
   // Product detail state
   let selectedProductDetail = $state<unknown>(null);
@@ -202,9 +215,10 @@
       // Select this transaction
       selectedTransactionId.set(transactionId);
 
-      // Save profile and auto-load products
+      // Save profile and auto-load products and categories
       discoveredProfile = result.profile;
       await loadProducts();
+      await loadCategories();
 
     } catch (err) {
       discoveryError = err instanceof Error ? err.message : 'Discovery failed';
@@ -271,13 +285,160 @@
       // Store the products endpoint for later use
       productsBaseEndpoint = productsEndpoint;
       
-      console.log('[UCP] Loading products from:', productsEndpoint);
-      const result = await client.getProducts(productsEndpoint);
-      products = result.products;
+      // Log get_products transaction
+      const productsTransactionId = `products_${Date.now()}`;
+      transactions.addTransaction(productsTransactionId, serverUrl);
+      
+      try {
+        let result: { products: unknown[]; meta?: unknown; raw: unknown };
+        
+        // Determine URL and action type based on category selection
+        const actionType = selectedCategoryId ? 'get_category_products' : 'get_products';
+        const actualUrl = selectedCategoryId 
+          ? `${serverUrl}/wp-json/ucp/v1/categories/${selectedCategoryId}/products?include_subcategories=true&page=${currentPage}`
+          : productsEndpoint + `?page=${currentPage}`;
+        
+        // Log request BEFORE making API call so transaction has label
+        const productsRequestId = transactions.addRequest(
+          productsTransactionId,
+          `msg_${Date.now()}`,
+          actionType,
+          { url: actualUrl, method: 'GET', category_id: selectedCategoryId }
+        );
+        
+        console.log(`[UCP] Loading ${actionType} from:`, actualUrl);
+        
+        // Make API call
+        if (selectedCategoryId) {
+          result = await client.getCategoryProducts(selectedCategoryId, {
+            include_subcategories: true,
+            page: currentPage
+          });
+        } else {
+          result = await client.getProducts(productsEndpoint, { page: currentPage });
+        }
+        
+        products = result.products;
+        
+        // Save meta info for pagination display
+        if (result.meta && typeof result.meta === 'object') {
+          const meta = result.meta as { page?: number; per_page?: number; total?: number; total_pages?: number };
+          productsMeta = {
+            page: meta.page || currentPage,
+            per_page: meta.per_page || 10,
+            total: meta.total || result.products.length,
+            total_pages: meta.total_pages || 1
+          };
+        }
+        
+        // Log successful response
+        transactions.addResponse(
+          productsTransactionId,
+          `msg_${Date.now()}`,
+          'get_products',
+          result.raw,
+          productsRequestId
+        );
+        transactions.updateStatus(productsTransactionId, 'completed');
+      } catch (productsErr) {
+        // Log failed response - just update status since productsRequestId may not be defined
+        transactions.updateStatus(productsTransactionId, 'failed');
+        throw productsErr;
+      }
     } catch (err) {
       productsError = err instanceof Error ? err.message : 'Failed to load products';
     } finally {
       isLoadingProducts = false;
+    }
+  }
+
+  async function loadCategories() {
+    if (!serverUrl) return;
+    
+    isLoadingCategories = true;
+    
+    try {
+      const client = getUCPClient(serverUrl);
+      client.setApiKey(apiKey);
+      
+      // Log get_categories transaction
+      const categoriesTransactionId = `categories_${Date.now()}`;
+      transactions.addTransaction(categoriesTransactionId, serverUrl);
+      const categoriesRequestId = transactions.addRequest(
+        categoriesTransactionId,
+        `msg_${Date.now()}`,
+        'get_categories',
+        { url: `${serverUrl}/wp-json/ucp/v1/categories`, method: 'GET' }
+      );
+      
+      try {
+        // Request hierarchical categories with children included
+        const result = await client.getCategories(undefined, { include_children: true });
+        categories = result.categories;
+        
+        transactions.addResponse(
+          categoriesTransactionId,
+          `msg_${Date.now()}`,
+          'get_categories',
+          result.raw,
+          categoriesRequestId
+        );
+        transactions.updateStatus(categoriesTransactionId, 'completed');
+        console.log('[UCP] Categories loaded:', categories.length);
+      } catch (catErr) {
+        transactions.addResponse(
+          categoriesTransactionId,
+          `msg_${Date.now()}`,
+          'get_categories',
+          { error: catErr instanceof Error ? catErr.message : 'Unknown error' },
+          categoriesRequestId,
+          [{ type: 'error' as const, code: 'api_error', content: catErr instanceof Error ? catErr.message : 'Categories fetch failed' }]
+        );
+        transactions.updateStatus(categoriesTransactionId, 'failed');
+        console.warn('[UCP] Categories not available:', catErr);
+      }
+    } finally {
+      isLoadingCategories = false;
+    }
+  }
+
+  async function handleSearch() {
+    if (!searchQuery.trim() || !serverUrl) return;
+    
+    isSearching = true;
+    productsError = null;
+    
+    try {
+      const client = getUCPClient(serverUrl);
+      client.setApiKey(apiKey);
+      
+      // Log search_products transaction
+      const searchTransactionId = `search_${Date.now()}`;
+      transactions.addTransaction(searchTransactionId, serverUrl);
+      const searchRequestId = transactions.addRequest(
+        searchTransactionId,
+        `msg_${Date.now()}`,
+        'search_products',
+        { url: `${serverUrl}/wp-json/ucp/v1/products/search`, method: 'GET', query: searchQuery }
+      );
+      
+      const result = await client.searchProducts(searchQuery);
+      products = result.products;
+      
+      transactions.addResponse(
+        searchTransactionId,
+        `msg_${Date.now()}`,
+        'search_products',
+        result.raw,
+        searchRequestId
+      );
+      transactions.updateStatus(searchTransactionId, 'completed');
+      
+      console.log('[UCP] Search results:', products.length);
+    } catch (err) {
+      productsError = err instanceof Error ? err.message : 'Search failed';
+    } finally {
+      isSearching = false;
     }
   }
 
@@ -298,6 +459,16 @@
     showProductDetail = true;
     selectedProductDetail = null;
 
+    // Log get_product transaction
+    const productTransactionId = `product_${Date.now()}`;
+    transactions.addTransaction(productTransactionId, serverUrl);
+    const productRequestId = transactions.addRequest(
+      productTransactionId,
+      `msg_${Date.now()}`,
+      'get_product',
+      { url: `${productsBaseEndpoint}/${productId}`, method: 'GET', product_id: productId }
+    );
+
     try {
       const client = getUCPClient(serverUrl);
       client.setApiKey(apiKey);
@@ -305,8 +476,30 @@
       const result = await client.getProductById(productId, productsBaseEndpoint || undefined);
       selectedProductDetail = result.product;
       console.log('[UCP] Product details:', result.product);
+      
+      // Log successful response
+      transactions.addResponse(
+        productTransactionId,
+        `msg_${Date.now()}`,
+        'get_product',
+        result.raw,
+        productRequestId
+      );
+      transactions.updateStatus(productTransactionId, 'completed');
     } catch (err) {
       console.error('[UCP] Failed to fetch product details:', err);
+      
+      // Log failed response
+      transactions.addResponse(
+        productTransactionId,
+        `msg_${Date.now()}`,
+        'get_product',
+        { error: err instanceof Error ? err.message : 'Unknown error' },
+        productRequestId,
+        [{ type: 'error' as const, code: 'api_error', content: err instanceof Error ? err.message : 'Product fetch failed' }]
+      );
+      transactions.updateStatus(productTransactionId, 'failed');
+      
       // Fall back to using the list product data
       selectedProductDetail = product;
     } finally {
@@ -715,10 +908,16 @@
         {#if discoveredProfile}
           <ProductsPanel 
             {products}
-            isLoading={isLoadingProducts}
+            isLoading={isLoadingProducts || isSearching}
             error={productsError}
             onSelectProduct={handleSelectProduct}
             onRefresh={loadProducts}
+            onSearch={(query) => { searchQuery = query; handleSearch(); }}
+            meta={productsMeta}
+            onPageChange={(page) => { currentPage = page; loadProducts(); }}
+            serverCategories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onCategoryChange={(catId) => { selectedCategoryId = catId; currentPage = 1; loadProducts(); }}
           />
         {/if}
       </aside>

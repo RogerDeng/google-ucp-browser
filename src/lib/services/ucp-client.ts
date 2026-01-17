@@ -78,9 +78,25 @@ export class UCPClient {
     // Products
     // ============================================================================
 
-    async getProducts(productsEndpoint?: string): Promise<{ products: unknown[]; raw: unknown }> {
+    async getProducts(
+        productsEndpoint?: string,
+        options?: { page?: number; per_page?: number; category?: number }
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
         // Use provided endpoint or default to /products
-        const endpoint = productsEndpoint || `${this.baseUrl}/products`;
+        let endpoint = productsEndpoint || `${this.baseUrl}/products`;
+
+        // Add query params if options provided
+        if (options) {
+            const params = new URLSearchParams();
+            if (options.page) params.set('page', String(options.page));
+            if (options.per_page) params.set('per_page', String(options.per_page));
+            if (options.category) params.set('category', String(options.category));
+            const queryString = params.toString();
+            if (queryString) {
+                endpoint += (endpoint.includes('?') ? '&' : '?') + queryString;
+            }
+        }
+
         const response = await this.proxyFetch<unknown>(endpoint, { method: 'GET' });
 
         if (response.error) {
@@ -93,6 +109,7 @@ export class UCPClient {
 
         // Handle various response formats
         let products: unknown[] = [];
+        let meta: unknown = undefined;
         const data = response.data;
 
         if (Array.isArray(data)) {
@@ -113,10 +130,15 @@ export class UCPClient {
                     products = values;
                 }
             }
+            // Extract meta if present
+            if (obj.meta) {
+                meta = obj.meta;
+            }
         }
 
         return {
             products,
+            meta,
             raw: response.data,
         };
     }
@@ -161,6 +183,183 @@ export class UCPClient {
             product,
             raw: response.data,
         };
+    }
+
+    /**
+     * Get product categories - GET /categories
+     * Supports hierarchical categories with parent, include_children parameters
+     */
+    async getCategories(
+        endpoint?: string,
+        options?: { parent?: number; include_children?: boolean; hide_empty?: boolean }
+    ): Promise<{ categories: unknown[]; meta?: unknown; raw: unknown }> {
+        let url = endpoint || `${this.baseUrl}/wp-json/ucp/v1/categories`;
+
+        // Add query params if options provided
+        if (options) {
+            const params = new URLSearchParams();
+            if (options.parent !== undefined) params.set('parent', String(options.parent));
+            if (options.include_children) params.set('include_children', 'true');
+            if (options.hide_empty) params.set('hide_empty', 'true');
+            const queryString = params.toString();
+            if (queryString) {
+                url += (url.includes('?') ? '&' : '?') + queryString;
+            }
+        }
+
+        const response = await this.proxyFetch<unknown>(url, {
+            method: 'GET',
+        });
+
+        if (response.error) {
+            throw new Error(`Get categories failed: ${response.error}`);
+        }
+
+        if (response.status >= 400) {
+            throw new Error(`Get categories failed with status ${response.status}: ${response.statusText}`);
+        }
+
+        let categories: unknown[] = [];
+        let meta: unknown = undefined;
+        const data = response.data;
+
+        if (data && typeof data === 'object') {
+            const obj = data as Record<string, unknown>;
+            if (Array.isArray(obj.categories)) {
+                categories = obj.categories;
+            } else if (Array.isArray(data)) {
+                categories = data;
+            } else {
+                // Handle object with numeric keys (like UCP server returns)
+                // Filter to only include objects that look like categories (have id and name)
+                const categoryLikeValues = Object.values(obj).filter(v => {
+                    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+                    const cat = v as Record<string, unknown>;
+                    return cat.id !== undefined && cat.name !== undefined;
+                });
+                if (categoryLikeValues.length > 0) {
+                    categories = categoryLikeValues;
+                }
+            }
+            if (obj.meta) {
+                meta = obj.meta;
+            }
+        }
+
+        return { categories, meta, raw: response.data };
+    }
+
+    /**
+     * Get products by category - GET /categories/{id}/products
+     * Supports include_subcategories parameter
+     */
+    async getCategoryProducts(
+        categoryId: number | string,
+        options?: { include_subcategories?: boolean; page?: number; per_page?: number }
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
+        let url = `${this.baseUrl}/wp-json/ucp/v1/categories/${categoryId}/products`;
+
+        // Add query params if options provided
+        if (options) {
+            const params = new URLSearchParams();
+            if (options.include_subcategories !== undefined) {
+                params.set('include_subcategories', String(options.include_subcategories));
+            }
+            if (options.page) params.set('page', String(options.page));
+            if (options.per_page) params.set('per_page', String(options.per_page));
+            const queryString = params.toString();
+            if (queryString) {
+                url += '?' + queryString;
+            }
+        }
+
+        const response = await this.proxyFetch<unknown>(url, {
+            method: 'GET',
+        });
+
+        if (response.error) {
+            throw new Error(`Get category products failed: ${response.error}`);
+        }
+
+        if (response.status >= 400) {
+            throw new Error(`Get category products failed with status ${response.status}: ${response.statusText}`);
+        }
+
+        let products: unknown[] = [];
+        let meta: unknown = undefined;
+        const data = response.data;
+
+        if (data && typeof data === 'object') {
+            const obj = data as Record<string, unknown>;
+            if (Array.isArray(obj.products)) {
+                products = obj.products;
+            } else if (Array.isArray(data)) {
+                products = data;
+            } else {
+                // Handle object with numeric keys
+                const productLikeValues = Object.values(obj).filter(v => {
+                    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+                    const prod = v as Record<string, unknown>;
+                    return prod.id !== undefined && (prod.name !== undefined || prod.title !== undefined);
+                });
+                if (productLikeValues.length > 0) {
+                    products = productLikeValues;
+                }
+            }
+            if (obj.meta) {
+                meta = obj.meta;
+            }
+        }
+
+        return { products, meta, raw: response.data };
+    }
+
+    /**
+     * Search products - GET /products/search?q={query}
+     */
+    async searchProducts(
+        query: string,
+        options?: { page?: number; per_page?: number; category?: number; endpoint?: string }
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
+        const baseUrl = options?.endpoint || `${this.baseUrl}/wp-json/ucp/v1/products/search`;
+
+        const params = new URLSearchParams();
+        params.set('q', query);
+        if (options?.page) params.set('page', String(options.page));
+        if (options?.per_page) params.set('per_page', String(options.per_page));
+        if (options?.category) params.set('category', String(options.category));
+
+        const url = `${baseUrl}?${params.toString()}`;
+
+        const response = await this.proxyFetch<unknown>(url, {
+            method: 'GET',
+        });
+
+        if (response.error) {
+            throw new Error(`Search products failed: ${response.error}`);
+        }
+
+        if (response.status >= 400) {
+            throw new Error(`Search products failed with status ${response.status}: ${response.statusText}`);
+        }
+
+        let products: unknown[] = [];
+        let meta: unknown = undefined;
+        const data = response.data;
+
+        if (data && typeof data === 'object') {
+            const obj = data as Record<string, unknown>;
+            if (Array.isArray(obj.products)) {
+                products = obj.products;
+            } else if (Array.isArray(data)) {
+                products = data;
+            }
+            if (obj.meta) {
+                meta = obj.meta;
+            }
+        }
+
+        return { products, meta, raw: response.data };
     }
 
     // ============================================================================

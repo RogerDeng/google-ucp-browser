@@ -27,9 +27,28 @@
     onSelectProduct: (product: Product) => void;
     onRefresh: () => void;
     onSearch?: (query: string) => void;
+    // Pagination props
+    meta?: { page: number; per_page: number; total: number; total_pages: number } | null;
+    onPageChange?: (page: number) => void;
+    // Category filter props
+    serverCategories?: unknown[];
+    selectedCategoryId?: number | null;
+    onCategoryChange?: (categoryId: number | null) => void;
   }
 
-  let { products, isLoading, error, onSelectProduct, onRefresh, onSearch }: Props = $props();
+  let { 
+    products, 
+    isLoading, 
+    error, 
+    onSelectProduct, 
+    onRefresh, 
+    onSearch,
+    meta,
+    onPageChange,
+    serverCategories,
+    selectedCategoryId: selectedCatId,
+    onCategoryChange
+  }: Props = $props();
 
   let selectedProductId = $state<string | null>(null);
   let searchQuery = $state('');
@@ -55,6 +74,78 @@
     }
     
     return Array.from(catMap.entries()).map(([id, name]) => ({ id, name }));
+  });
+
+  // Flatten hierarchical categories for select dropdown with indentation
+  interface FlatCategory {
+    id: number | string;
+    name: string;
+    depth: number;
+    parent_id?: number;
+  }
+
+  const flattenedServerCategories = $derived(() => {
+    if (!serverCategories || serverCategories.length === 0) return [];
+    
+    const result: FlatCategory[] = [];
+    const categoryMap = new Map<number, { id: number; name: string; parent_id: number; children?: unknown[] }>();
+    
+    // Build map and find root categories - filter out categories without name
+    for (const cat of serverCategories) {
+      const c = cat as { id: number; name: string; parent_id?: number; children?: unknown[] };
+      if (c.id !== undefined && c.name) { // Only add if has id and name
+        categoryMap.set(c.id, { ...c, parent_id: c.parent_id || 0 });
+      }
+    }
+    
+    // Recursive function to add categories with depth
+    function addCategoryWithChildren(catId: number, depth: number) {
+      const cat = categoryMap.get(catId);
+      if (!cat || !cat.name) return; // Skip if no name
+      
+      // Add indentation prefix based on depth
+      const prefix = depth > 0 ? '　'.repeat(depth - 1) + '└ ' : '';
+      result.push({
+        id: cat.id,
+        name: prefix + cat.name,
+        depth,
+        parent_id: cat.parent_id
+      });
+      
+      // Add children if present
+      if (cat.children && Array.isArray(cat.children)) {
+        for (const child of cat.children) {
+          const ch = child as { id: number; name: string; parent_id?: number; children?: unknown[] };
+          if (ch.id !== undefined && ch.name) { // Only add if has id and name
+            categoryMap.set(ch.id, { ...ch, parent_id: ch.parent_id || cat.id });
+            addCategoryWithChildren(ch.id, depth + 1);
+          }
+        }
+      }
+    }
+    
+    // First pass: add all root categories (parent_id === 0 or undefined)
+    const rootCategories = serverCategories.filter(cat => {
+      const c = cat as { parent_id?: number; name?: string };
+      return (!c.parent_id || c.parent_id === 0) && c.name; // Must have name
+    });
+    
+    for (const cat of rootCategories) {
+      const c = cat as { id: number };
+      addCategoryWithChildren(c.id, 0);
+    }
+    
+    // If no hierarchy was built (flat list), just return flattened list
+    if (result.length === 0) {
+      for (const cat of serverCategories) {
+        const c = cat as { id: number | string; name: string; parent_id?: number };
+        if (c.name) { // Only add if has name
+          result.push({ id: c.id, name: c.name, depth: 0, parent_id: c.parent_id });
+        }
+      }
+    }
+    
+    return result;
   });
 
   // Filter products by search query
@@ -182,7 +273,61 @@
       bind:value={searchQuery}
       onkeydown={handleSearchKeydown}
     />
+    {#if onSearch}
+      <button 
+        class="btn-search" 
+        onclick={() => onSearch && searchQuery.trim() && onSearch(searchQuery)}
+        disabled={!searchQuery.trim()}
+        title="API 搜尋"
+      >
+        搜尋
+      </button>
+    {/if}
   </div>
+
+  <!-- Pagination Info & Category Filter -->
+  {#if meta || (serverCategories && serverCategories.length > 0)}
+    <div class="filter-bar">
+      {#if meta}
+        <span class="pagination-info">
+          共 {meta.total} 個產品，第 {meta.page}/{meta.total_pages} 頁
+        </span>
+        <div class="pagination-controls">
+          <button 
+            class="btn-page" 
+            onclick={() => onPageChange && onPageChange(meta.page - 1)}
+            disabled={!onPageChange || meta.page <= 1}
+            title="上一頁"
+          >
+            ◀
+          </button>
+          <button 
+            class="btn-page" 
+            onclick={() => onPageChange && onPageChange(meta.page + 1)}
+            disabled={!onPageChange || meta.page >= meta.total_pages}
+            title="下一頁"
+          >
+            ▶
+          </button>
+        </div>
+      {/if}
+      {#if serverCategories && serverCategories.length > 0 && onCategoryChange}
+        <select 
+          class="category-select" 
+          value={selectedCatId !== null && selectedCatId !== undefined ? String(selectedCatId) : ''}
+          onchange={(e) => {
+            const val = (e.target as HTMLSelectElement).value;
+            onCategoryChange(val ? parseInt(val, 10) : null);
+          }}
+        >
+          <option value="">全部分類</option>
+          {#each flattenedServerCategories() as cat}
+            <option value={String(cat.id)}>{cat.name}</option>
+          {/each}
+        </select>
+      {/if}
+    </div>
+  {/if}
 
   <div class="products-content">
     {#if isLoading}
@@ -327,6 +472,78 @@
   }
 
   .btn-icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-search {
+    padding: 0.375rem 0.75rem;
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    flex-shrink: 0;
+  }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    font-size: 0.75rem;
+  }
+
+  .pagination-info {
+    color: var(--text-muted);
+  }
+
+  .pagination-controls {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+  }
+
+  .btn-page {
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: 4px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+
+  .btn-page:hover:not(:disabled) {
+    background: var(--accent-blue);
+    color: white;
+  }
+
+  .btn-page:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .category-select {
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .btn-search:hover:not(:disabled) {
+    background-color: var(--accent-blue-hover, #2563eb);
+  }
+
+  .btn-search:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
