@@ -377,7 +377,11 @@
       
       // Show user-friendly error
       if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-        showError('需要 API Key 才能操作購物車。請在上方輸入您的 API Key。');
+        if (!apiKey || apiKey.trim() === '') {
+          showError('需要 API Key 才能操作購物車。請在上方輸入您的 API Key。');
+        } else {
+          showError('API Key 驗證失敗（401 Unauthorized）。請檢查您輸入的 API Key 是否正確。');
+        }
       } else {
         showError(`加入購物車失敗: ${errorMsg}`);
       }
@@ -517,7 +521,11 @@
       
       // Show user-friendly error
       if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-        showError('需要 API Key。請在上方輸入您的 API Key 後重試。');
+        if (!apiKey || apiKey.trim() === '') {
+          showError('需要 API Key。請在上方輸入您的 API Key 後重試。');
+        } else {
+          showError('API Key 驗證失敗（401 Unauthorized）。請檢查您輸入的 API Key 是否正確。');
+        }
       } else if (errorMsg.includes('400') || errorMsg.includes('Bad Request')) {
         showError(`操作失敗: 伺服器回傳 400 錯誤。可能需要更多資料（如收貨地址）。`);
       } else {
@@ -604,7 +612,11 @@
       transactions.updateStatus(transactionId, 'failed');
 
       if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-        showError('需要 API Key。請在上方輸入您的 API Key 後重試。');
+        if (!apiKey || apiKey.trim() === '') {
+          showError('需要 API Key。請在上方輸入您的 API Key 後重試。');
+        } else {
+          showError('API Key 驗證失敗（401 Unauthorized）。請檢查您輸入的 API Key 是否正確。');
+        }
       } else if (errorMsg.includes('400')) {
         showError(`結帳失敗: 請檢查所有必填欄位是否已填寫。`);
       } else {
