@@ -4,7 +4,8 @@ import type {
     Transaction,
     CorrelatedMessage,
     UCPAction,
-    Message
+    Message,
+    HTTPDetails
 } from '$lib/types/ucp';
 
 // ============================================================================
@@ -39,7 +40,8 @@ function createTransactionStore() {
             transactionId: string,
             messageId: string,
             action: UCPAction,
-            payload: unknown
+            payload: unknown,
+            http?: HTTPDetails
         ): string {
             const id = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -66,6 +68,7 @@ function createTransactionStore() {
                     payload,
                     timestamp: new Date(),
                     status: 'pending',
+                    http,
                 };
 
                 transaction.messages.push(message);
@@ -84,7 +87,8 @@ function createTransactionStore() {
             action: UCPAction,
             payload: unknown,
             parentId: string,
-            errors?: Message[]
+            errors?: Message[],
+            http?: HTTPDetails
         ): string {
             const id = `res_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -114,6 +118,7 @@ function createTransactionStore() {
                     timestamp: new Date(),
                     status: errors && errors.length > 0 ? 'failed' : 'completed',
                     errors,
+                    http,
                 };
 
                 transaction.messages.push(message);

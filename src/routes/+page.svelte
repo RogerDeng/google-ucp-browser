@@ -192,7 +192,8 @@
         transactionId,
         `msg_${Date.now()}`,
         'discover',
-        { url: `${serverUrl}/.well-known/ucp` }
+        { url: `${serverUrl}/.well-known/ucp` },
+        { method: 'GET', url: `${serverUrl}/.well-known/ucp` }
       );
 
       const result = await client.discover();
@@ -209,7 +210,8 @@
           code: 'validation_warning',
           path: e.path,
           content: e.message,
-        }))
+        })),
+        result.http
       );
 
       // Select this transaction
@@ -290,7 +292,7 @@
       transactions.addTransaction(productsTransactionId, serverUrl);
       
       try {
-        let result: { products: unknown[]; meta?: unknown; raw: unknown };
+        let result: { products: unknown[]; meta?: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails };
         
         // Determine URL and action type based on category selection
         const actionType = selectedCategoryId ? 'get_category_products' : 'get_products';
@@ -335,9 +337,11 @@
         transactions.addResponse(
           productsTransactionId,
           `msg_${Date.now()}`,
-          'get_products',
+          selectedCategoryId ? 'get_category_products' : 'get_products',
           result.raw,
-          productsRequestId
+          productsRequestId,
+          undefined,
+          result.http
         );
         transactions.updateStatus(productsTransactionId, 'completed');
       } catch (productsErr) {
@@ -381,7 +385,9 @@
           `msg_${Date.now()}`,
           'get_categories',
           result.raw,
-          categoriesRequestId
+          categoriesRequestId,
+          undefined,
+          result.http
         );
         transactions.updateStatus(categoriesTransactionId, 'completed');
         console.log('[UCP] Categories loaded:', categories.length);
@@ -430,7 +436,9 @@
         `msg_${Date.now()}`,
         'search_products',
         result.raw,
-        searchRequestId
+        searchRequestId,
+        undefined,
+        result.http
       );
       transactions.updateStatus(searchTransactionId, 'completed');
       
@@ -483,7 +491,9 @@
         `msg_${Date.now()}`,
         'get_product',
         result.raw,
-        productRequestId
+        productRequestId,
+        undefined,
+        result.http
       );
       transactions.updateStatus(productTransactionId, 'completed');
     } catch (err) {
@@ -954,6 +964,7 @@
             <JsonViewer 
               data={$selectedMessage.payload}
               errors={$selectedMessage.errors}
+              httpDetails={$selectedMessage.http}
             />
           {:else}
             <div class="empty-state">

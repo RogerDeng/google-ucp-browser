@@ -1,16 +1,19 @@
 <script lang="ts">
   import { ChevronRight, ChevronDown, Copy, Check, AlertTriangle } from 'lucide-svelte';
-  import type { Message } from '$lib/types/ucp';
+  import type { Message, HTTPDetails } from '$lib/types/ucp';
 
   interface Props {
     data: unknown;
     errors?: Message[];
     expandLevel?: number;
+    httpDetails?: HTTPDetails;
   }
 
-  let { data, errors = [], expandLevel = 2 }: Props = $props();
+  let { data, errors = [], expandLevel = 2, httpDetails }: Props = $props();
 
   let copied = $state(false);
+  let httpExpanded = $state(true);
+  let headersExpanded = $state(false);
 
   // Extract error paths for highlighting
   const errorPaths = $derived(new Set(errors?.map(e => e.path).filter((p): p is string => p !== undefined) || []));
@@ -43,6 +46,72 @@
       </div>
     {/if}
   </div>
+
+  <!-- HTTP Protocol Section -->
+  {#if httpDetails}
+    <div class="http-section">
+      <button 
+        class="http-header" 
+        onclick={() => httpExpanded = !httpExpanded}
+      >
+        <span class="expand-icon">
+          {#if httpExpanded}
+            <ChevronDown size={14} />
+          {:else}
+            <ChevronRight size={14} />
+          {/if}
+        </span>
+        <span class="http-title">HTTP Protocol</span>
+      </button>
+      
+      {#if httpExpanded}
+        <div class="http-content">
+          <div class="http-line">
+            <span class="http-method">{httpDetails.method || 'GET'}</span>
+            <span class="http-url">{httpDetails.url}</span>
+          </div>
+          
+          {#if httpDetails.status}
+            <div class="http-line">
+              <span class="http-label">Status:</span>
+              <span class="http-status" class:success={httpDetails.status >= 200 && httpDetails.status < 300} class:error={httpDetails.status >= 400}>
+                {httpDetails.status} {httpDetails.statusText || ''}
+              </span>
+            </div>
+          {/if}
+          
+          {#if httpDetails.headers && Object.keys(httpDetails.headers).length > 0}
+            <div class="http-headers-section">
+              <button 
+                class="headers-toggle" 
+                onclick={() => headersExpanded = !headersExpanded}
+              >
+                <span class="expand-icon">
+                  {#if headersExpanded}
+                    <ChevronDown size={12} />
+                  {:else}
+                    <ChevronRight size={12} />
+                  {/if}
+                </span>
+                <span>Headers ({Object.keys(httpDetails.headers).length})</span>
+              </button>
+              
+              {#if headersExpanded}
+                <div class="headers-list">
+                  {#each Object.entries(httpDetails.headers) as [key, value]}
+                    <div class="header-item">
+                      <span class="header-key">{key}:</span>
+                      <span class="header-value">{value}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   {#if errors && errors.length > 0}
     <div class="warning-list">
@@ -272,5 +341,113 @@
     background-color: rgba(239, 68, 68, 0.2);
     border-radius: 2px;
     padding: 0 2px;
+  }
+
+  /* HTTP Protocol Section */
+  .http-section {
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .http-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .http-header:hover {
+    background: var(--bg-tertiary);
+  }
+
+  .http-title {
+    color: var(--accent-blue);
+  }
+
+  .http-content {
+    padding: 0.5rem 1rem 1rem 2rem;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.8125rem;
+  }
+
+  .http-line {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .http-method {
+    color: #a78bfa;
+    font-weight: 600;
+  }
+
+  .http-url {
+    color: #7dd3fc;
+    word-break: break-all;
+  }
+
+  .http-label {
+    color: var(--text-muted);
+  }
+
+  .http-status {
+    color: var(--text-primary);
+  }
+
+  .http-status.success {
+    color: #4ade80;
+  }
+
+  .http-status.error {
+    color: #f87171;
+  }
+
+  .http-headers-section {
+    margin-top: 0.75rem;
+  }
+
+  .headers-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+
+  .headers-toggle:hover {
+    color: var(--text-primary);
+  }
+
+  .headers-list {
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+  }
+
+  .header-item {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+  }
+
+  .header-key {
+    color: #7dd3fc;
+    min-width: 120px;
+  }
+
+  .header-value {
+    color: var(--text-secondary);
+    word-break: break-all;
   }
 </style>

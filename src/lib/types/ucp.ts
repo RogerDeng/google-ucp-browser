@@ -336,6 +336,17 @@ export type UCPAction =
     | 'get_order'
     | 'webhook';
 
+/**
+ * HTTP protocol details for a message
+ */
+export interface HTTPDetails {
+    method?: string;
+    url?: string;
+    status?: number;
+    statusText?: string;
+    headers?: Record<string, string>;
+}
+
 export interface CorrelatedMessage {
     id: string;
     transactionId: string;
@@ -349,6 +360,7 @@ export interface CorrelatedMessage {
     duration?: number; // ms for request-response pairs
     status?: 'pending' | 'completed' | 'failed';
     errors?: Message[];
+    http?: HTTPDetails; // HTTP protocol details
 }
 
 export interface Transaction {

@@ -49,12 +49,25 @@ export class UCPClient {
         return normalized;
     }
 
+    /**
+     * Extract HTTP details from proxy response
+     */
+    private extractHTTPDetails(response: ProxyResponse<unknown>, method: string, url: string): import('$lib/types/ucp').HTTPDetails {
+        return {
+            method,
+            url,
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers
+        };
+    }
+
 
     // ============================================================================
     // Discovery
     // ============================================================================
 
-    async discover(): Promise<{ profile: UCPProfile; validation: ValidationResult<unknown> }> {
+    async discover(): Promise<{ profile: UCPProfile; validation: ValidationResult<unknown>; http: import('$lib/types/ucp').HTTPDetails }> {
         const url = `${this.baseUrl}/.well-known/ucp`;
         const response = await this.proxyFetch<UCPProfile>(url, { method: 'GET' });
 
@@ -71,6 +84,7 @@ export class UCPClient {
         return {
             profile: response.data,
             validation,
+            http: this.extractHTTPDetails(response, 'GET', url)
         };
     }
 
@@ -81,7 +95,7 @@ export class UCPClient {
     async getProducts(
         productsEndpoint?: string,
         options?: { page?: number; per_page?: number; category?: number }
-    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails }> {
         // Use provided endpoint or default to /products
         let endpoint = productsEndpoint || `${this.baseUrl}/products`;
 
@@ -140,13 +154,14 @@ export class UCPClient {
             products,
             meta,
             raw: response.data,
+            http: this.extractHTTPDetails(response, 'GET', endpoint)
         };
     }
 
     async getProductById(
         productId: string,
         baseEndpoint?: string
-    ): Promise<{ product: unknown; raw: unknown }> {
+    ): Promise<{ product: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails }> {
         // Use provided base endpoint or default to baseUrl
         const endpoint = baseEndpoint
             ? `${baseEndpoint.replace(/\/$/, '')}/${productId}`
@@ -182,6 +197,7 @@ export class UCPClient {
         return {
             product,
             raw: response.data,
+            http: this.extractHTTPDetails(response, 'GET', endpoint)
         };
     }
 
@@ -192,7 +208,7 @@ export class UCPClient {
     async getCategories(
         endpoint?: string,
         options?: { parent?: number; include_children?: boolean; hide_empty?: boolean }
-    ): Promise<{ categories: unknown[]; meta?: unknown; raw: unknown }> {
+    ): Promise<{ categories: unknown[]; meta?: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails }> {
         let url = endpoint || `${this.baseUrl}/wp-json/ucp/v1/categories`;
 
         // Add query params if options provided
@@ -246,7 +262,12 @@ export class UCPClient {
             }
         }
 
-        return { categories, meta, raw: response.data };
+        return {
+            categories,
+            meta,
+            raw: response.data,
+            http: this.extractHTTPDetails(response, 'GET', url)
+        };
     }
 
     /**
@@ -256,7 +277,7 @@ export class UCPClient {
     async getCategoryProducts(
         categoryId: number | string,
         options?: { include_subcategories?: boolean; page?: number; per_page?: number }
-    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails }> {
         let url = `${this.baseUrl}/wp-json/ucp/v1/categories/${categoryId}/products`;
 
         // Add query params if options provided
@@ -311,7 +332,12 @@ export class UCPClient {
             }
         }
 
-        return { products, meta, raw: response.data };
+        return {
+            products,
+            meta,
+            raw: response.data,
+            http: this.extractHTTPDetails(response, 'GET', url)
+        };
     }
 
     /**
@@ -320,7 +346,7 @@ export class UCPClient {
     async searchProducts(
         query: string,
         options?: { page?: number; per_page?: number; category?: number; endpoint?: string }
-    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown }> {
+    ): Promise<{ products: unknown[]; meta?: unknown; raw: unknown; http: import('$lib/types/ucp').HTTPDetails }> {
         const baseUrl = options?.endpoint || `${this.baseUrl}/wp-json/ucp/v1/products/search`;
 
         const params = new URLSearchParams();
@@ -359,7 +385,12 @@ export class UCPClient {
             }
         }
 
-        return { products, meta, raw: response.data };
+        return {
+            products,
+            meta,
+            raw: response.data,
+            http: this.extractHTTPDetails(response, 'GET', url)
+        };
     }
 
     // ============================================================================
