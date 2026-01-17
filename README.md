@@ -1,96 +1,97 @@
+**[ 🇺🇸 English ]** | [ 🇹🇼 繁體中文 ](./README.zh-TW.md)
+
 # Google UCP Browser 🌐
 
-> **Universal Commerce Protocol 的終極除錯與可視化工具**
+> **The Ultimate Debugger & Visualization Tool for the Universal Commerce Protocol**
 > 
-> *The ultimate debugger and visualization tool for the Universal Commerce Protocol.*
+> *Simplify development, testing, and validation of UCP applications.*
 
 [![Svelte 5](https://img.shields.io/badge/Svelte-5.x-orange.svg)](https://svelte.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.x-purple.svg)](https://vitejs.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)]()
 
-**Google UCP Browser** 是一個專為開發者打造的現代化客戶端工具，旨在簡化 **Universal Commerce Protocol (UCP)** 的開發、測試與驗證流程。它不僅僅是一個瀏覽器，更是您在構建 UCP 應用時最強大的 Copilot。
+**Google UCP Browser** is a modern client-side tool built for developers, designed to streamline the development, testing, and validation workflow of the **Universal Commerce Protocol (UCP)**. It is more than just a browser—it is your most powerful Copilot when building UCP applications.
 
 ---
 
-## 🚀 為什麼選擇 UCP Browser？
+## 🚀 Why Universal Commerce Protocol Browser?
 
-在開發分散式商務協議時，最大的痛點往往是**不可視性**。與傳統的 REST API 不同，UCP 涉及複雜的狀態流轉、異步事件 (SSE) 和嚴格的結構驗證。
+The biggest pain point in developing distributed commerce protocols is **invisibility**. Unlike traditional REST APIs, UCP involves complex state transitions, asynchronous events (SSE), and strict structural validation.
 
-**UCP Browser** 解決了這個問題：
+**UCP Browser** solves this problem:
 
-*   🔍 **深度透視 (Deep Inspection)**：不再猜測伺服器回傳了什麼。實時查看完整的 Request/Response 週期、HTTP Headers、Status Codes 以及原始 JSON Payload。
-*   ⚡️ **即時驗證 (Real-time Validation)**：內建基於 Zod 的 Schema 驗證器，自動檢查伺服器響應是否符合 UCP v2026-01-11 規範，即時標記錯誤。
-*   🛍️ **完整模擬 (Simulate User Journey)**：就像一個真實的 "Buyer App"，模擬從 **服務發現 (Discovery)** -> **商品瀏覽** -> **購物車** -> **結帳 (Checkout)** 的完整購物流程。
-
----
-
-## ✨ 核心功能 (Core Features)
-
-### 1. 智能服務發現 (Smart Discovery)
-輸入伺服器 URL，自動掃描 `/.well-known/ucp` 端點。解析並視覺化伺服器的 **Capabilities (能力)**、**Services (服務)** 和 **API Endpoints**，讓您瞬間掌握對接方的技術規格。
-
-### 2. 交易全景視圖 (Transaction Inspector)
-以樹狀結構 (Tree View) 呈現所有的 API 交互。
-- **HTTP Protocol 完整顯示**：支援 Method, URL, Status, Headers 的詳細檢視。
-- **Payload 可視化**：漂亮的 JSON 檢視器，支援摺疊、語法高亮和錯誤路徑標記。
-- **時間軸追蹤**：精確記錄每個請求的耗時與順序。
-
-### 3. 互動式購物體驗 (Interactive Shopping Agent)
-內建完整的電子商務 UI，讓您以使用者的視角測試 API：
-- **商品牆**：支援分頁、分類篩選 (Hierarchical Categories) 和關鍵字搜尋。
-- **動態購物車**：測試加入、更新、刪除商品及庫存檢查邏輯。
-- **結帳精靈**：完整的結帳流程模擬，支援 Payment Handlers 和 Session 管理。
-
-### 4. 服務端事件監聽 (SSE Listener)
-自動連接 `/api/events`，實時捕捉並顯示來自伺服器的異步通知（如訂單狀態更新），確保前後端狀態同步無延遲。
+*   🔍 **Deep Inspection**: Stop guessing what the server returned. View the full Request/Response cycle, HTTP Headers, Status Codes, and raw JSON Payloads in real-time.
+*   ⚡️ **Real-time Validation**: Built-in Zod-based schema validator automatically checks server responses against the UCP v2026-01-11 specification, flagging errors instantly.
+*   🛍️ **Full User Journey Simulation**: Simulates the complete shopping flow from **Service Discovery** -> **Product Browsing** -> **Cart Management** -> **Checkout** just like a real "Buyer App".
 
 ---
 
-## 🛠 技術堆疊 (Tech Stack)
+## ✨ Core Features
 
-本專案採用最前沿的 Web 技術構建，確保極致的效能與開發體驗：
+### 1. Smart Discovery
+Enter a server URL to automatically scan the `/.well-known/ucp` endpoint. Parse and visualize the server's **Capabilities**, **Services**, and **API Endpoints**, giving you instant insight into the peer's technical specifications.
+
+### 2. Transaction Inspector
+View all API interactions in a hierarchical Tree View.
+- **Full HTTP Protocol Display**: Detailed view of Methods, URLs, Status, and Headers.
+- **Payload Visualization**: Beautiful JSON viewer with folding, syntax highlighting, and error path highlighting.
+- **Timeline Tracking**: Precisely record the duration and sequence of every request.
+
+### 3. Interactive Shopping Agent
+Built-in complete E-commerce UI allowing you to test APIs from a user's perspective:
+- **Product Wall**: Supports pagination, hierarchical category filtering, and keyword search.
+- **Dynamic Cart**: Test logic for adding, updating, and removing items, as well as inventory checks.
+- **Checkout Wizard**: Full checkout flow simulation supporting Payment Handlers and Session management.
+
+### 4. Server-Sent Events (SSE) Listener
+Automatically connects to `/api/events` to capture and display asynchronous notifications from the server (e.g., order status updates) in real-time, ensuring zero-latency synchronization between frontend and backend states.
+
+---
+
+## 🛠 Tech Stack
+
+This project is built with cutting-edge Web technologies to ensure peak performance and developer experience:
 
 | Category | Technology | Description |
 |----------|------------|-------------|
-| **Core** | ![Svelte](https://img.shields.io/badge/-Svelte_5-ff3e00?style=flat-square&logo=svelte) | 使用最新的 Runes 語法，極致響應式體驗 |
-| **Language** | ![TypeScript](https://img.shields.io/badge/-TypeScript-3178c6?style=flat-square&logo=typescript) | 全型別安全，嚴格的類型定義 |
-| **Styling** | ![Tailwind CSS](https://img.shields.io/badge/-Tailwind_CSS_4-38b2ac?style=flat-square&logo=tailwindcss) | 下一代原子化 CSS 引擎 |
-| **Icons** | ![Lucide](https://img.shields.io/badge/-Lucide-purple?style=flat-square) | 精美統一的圖標庫 |
-| **Validation** | ![Zod](https://img.shields.io/badge/-Zod-3068b7?style=flat-square) | 執行時 Schema 驗證與錯誤推斷 |
+| **Core** | ![Svelte](https://img.shields.io/badge/-Svelte_5-ff3e00?style=flat-square&logo=svelte) | Using the latest Runes syntax for fine-grained reactivity |
+| **Language** | ![TypeScript](https://img.shields.io/badge/-TypeScript-3178c6?style=flat-square&logo=typescript) | Full type safety with strict definitions |
+| **Styling** | ![Tailwind CSS](https://img.shields.io/badge/-Tailwind_CSS_4-38b2ac?style=flat-square&logo=tailwindcss) | Next-generation atomic CSS engine |
+| **Icons** | ![Lucide](https://img.shields.io/badge/-Lucide-purple?style=flat-square) | Beautiful, consistent icon library |
+| **Validation** | ![Zod](https://img.shields.io/badge/-Zod-3068b7?style=flat-square) | Runtime schema validation and error inference |
 
 ---
 
+## 🔧 Technical Highlights
 
-## 🔧 技術亮點 (Technical Highlights)
+This project implements several advanced engineering practices, showcasing the architectural depth of a Modern Web App:
 
-本專案採用了多項高階工程實踐，展示了 Modern Web App 的架構深度：
+### 1. Svelte 5 Runes Architecture
+We fully adopted Svelte 5's **Runes API** (`$state`, `$derived`, `$props`), moving away from traditional store patterns. This brings **Fine-grained Reactivity** and significantly reduces side effects that could lead to bugs, ensuring the UI remains fluid even when processing massive volumes of real-time UCP messages.
 
-### 1. Svelte 5 Runes 架構
-全面採用 Svelte 5 的 **Runes API** (`$state`, `$derived`, `$props`)，捨棄了傳統的 store 模式。這不僅帶來了更細粒度的響應式更新 (Fine-grained Reactivity)，更大幅減少了能夠引發 Bug 的副作用，確保在處理大量實時 UCP 訊息時 UI 依然流暢不卡頓。
+### 2. Dual-Layer Type Safety
+We employ **TypeScript** for static checking at compile time and **Zod** for schema validation at runtime.
+*   **Compile Time**: TS ensures correctness of components and function calls.
+*   **Run Time**: Zod validates external UCP server responses on the fly. If a server returns data that violates the spec (e.g., missing fields or incorrect enums), the Browser intercepts and reports it immediately instead of failing silently.
 
-### 2. 雙重類型安全 (Dual-Layer Type Safety)
-我們不只在編譯時使用 **TypeScript** 進行靜態檢查，更在運行時引入 **Zod** 進行 Schema 驗證。
-*   **Compile Time**: TS 確保組件與函數調用的類型正確。
-*   **Run Time**: Zod 用於即時驗證外部 UCP 伺服器的響應。這意味著如果伺服器回傳了不符合 spec 的數據（例如缺少的欄位或錯誤的枚舉值），Browser 會立即攔截並報錯，而非讓 UI 默默崩潰。
+### 3. Transparent Proxy Architecture
+To allow the browser to communicate directly with any third-party UCP server (bypassing Browser CORS restrictions), we built a high-performance **SvelteKit Server Proxy** (`/api/proxy`).
+*   Automatically forwards critical Headers (`UCP-Agent`, `X-UCP-API-Key`).
+*   Preserves HTTP protocol integrity, allowing the frontend to capture exact Status Codes and Headers for a true "Network Inspector" experience.
 
-### 3. 透明代理架構 (Transparent Proxy Architecture)
-為了讓瀏覽器能直接與任意第三方 UCP 伺服器通訊（解決 Browser CORS 限制），我們內建了一個高效的 **SvelteKit Server Proxy** (`/api/proxy`)。
-*   自動轉發關鍵 Headers (`UCP-Agent`, `X-UCP-API-Key`)。
-*   保持 HTTP 協議的完整性，讓前端能精確捕捉 Status Code 和 Headers，實現真實的 "Network Inspector" 體驗。
-
-### 4. 異步交易關聯引擎 (Event-Driven Transaction Correlation)
-UCP 協議涉及複雜的異步流（例如：HTTP POST 觸發動作，SSE 推送結果）。我們實作了一個專門的 `TransactionStore`，能夠追蹤並將分散的 **HTTP Requests** 與 **SSE Events** 自動關聯到同一個 Transaction ID 下。這將混亂的日誌流轉化為結構清晰的「對話式」視圖，極大降低了除錯難度。
+### 4. Event-Driven Transaction Correlation Engine
+The UCP protocol involves complex asynchronous flows (e.g., HTTP POST triggering an action, SSE pushing results). We implemented a specialized `TransactionStore` that traces and correlates scattered **HTTP Requests** and **SSE Events** under a single Transaction ID. This transforms chaotic logs into a structured, conversational view, drastically reducing debugging complexity.
 
 ---
 
-## 🏁 快速開始 (Getting Started)
+## 🏁 Getting Started
 
-### 前置需求
+### Prerequisites
 *   Node.js 18+
 *   npm 9+
 
-### 安裝與執行
+### Installation & Running
 
 ```bash
 # 1. Clone repository
@@ -104,25 +105,25 @@ npm install
 npm run dev
 ```
 
-瀏覽器打開 `http://localhost:5173`，您將看到 UCP Browser 的主畫面。
+Open `http://localhost:5173` in your browser to see the UCP Browser dashboard.
 
-### 連接您的 UCP Server
+### Connect Your UCP Server
 
-1. 在頂部輸入框輸入您的 UCP Server URL（例如 `http://localhost:8080`）。
-2. (選填) 如果伺服器需要驗證，輸入 API Key。
-3. 點擊 **"Discover"** 按鈕。
-4. 開始探索您的 API！
+1. Enter your UCP Server URL in the top input box (e.g., `http://localhost:8080`).
+2. (Optional) Enter API Key if the server requires authentication.
+3. Click the **"Discover"** button.
+4. Start exploring your API!
 
 ---
 
-## 🗺️ 開發路線圖 (Roadmap)
+## 🗺️ Roadmap
 
-- [x] **Protocol Discovery**: 實作 `.well-known` 解析。
-- [x] **Product/Cart Flow**: 完整的商品與購物車操作。
-- [x] **Transaction Logs**: 詳細的 HTTP 請求紀錄與 UI 呈現。
-- [ ] **MCP Support**: 整合 Model Context Protocol 支援。
-- [ ] **Advanced Payment**: 支援更多樣化的支付處理器模擬。
-- [ ] **Automated Testing Suite**: 一鍵執行對目標伺服器的合規性測試。
+- [x] **Protocol Discovery**: Implementation of `.well-known` parsing.
+- [x] **Product/Cart Flow**: Complete product and cart operations.
+- [x] **Transaction Logs**: Detailed HTTP request logging and UI presentation.
+- [ ] **MCP Support**: Integration of Model Context Protocol.
+- [ ] **Advanced Payment**: Simulation of diverse payment processors.
+- [ ] **Automated Testing Suite**: One-click compliance testing for target servers.
 
 ---
 
